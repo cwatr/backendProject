@@ -51,7 +51,7 @@ const userSchema = new Schema(
 )
 
 userSchema.pre("save", async function (next){
-    if(!this.isModified("password")) next();
+    if(!this.isModified("password")) next();   //jab bhi password field mei modification hoga tab he encrypt karo
     this.password = await bcrypt.hash(this.password, 10)
     next()
 })
@@ -66,7 +66,7 @@ userSchema.methods.generateAccessToken = function(){
             _id: this._id,
             email: this.email,
             username: this.username,
-            firstname: this.firstname
+            fullname: this.fullname
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
