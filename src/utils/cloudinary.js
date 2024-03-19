@@ -29,12 +29,16 @@ const uploadOnCloudinary = async (localFilePath) => {
 
 const deleteFromCloudinary = async (imageLink) => {
     try {
-        if(!imageLink){
-
-        const response = await cloudinary.uploader.destroy(imageLink).then(result=>console.log(result));
+       // console.log("image link : ", imageLink)
+        if(imageLink){
+            const response = await cloudinary.uploader.destroy(imageLink, {
+                resource_type: "image"
+            })
+           // console.log("image deleted successfully")
         }
 
     } catch (error) {
+        console.log("Error occured while deleting an image from cloudinary \n ", error)
         return null;
     }
 }

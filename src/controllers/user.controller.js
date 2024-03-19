@@ -34,7 +34,7 @@ const registerUser = asyncHandler( async (req, res) => {
 
 
     const {fullname, email, username, password} = req.body
-   // console.log("request body: \n", req.body)
+    //console.log("request body: \n", req.body)
     
     if(
         [fullname, email, username, password].some((field) => field?.trim() === "")
@@ -50,10 +50,10 @@ const registerUser = asyncHandler( async (req, res) => {
     if(existingUser) throw new ApiError(409, "User with email or username already exists!");
 
 
-    //console.log("req files \n", req.files)
+    // console.log("req files \n", req.files)
 
     let avatarLocalPath;
-    if(req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0){
+    if(req.files && Array.isArray(req.files.avatar) && req.files.avatar[0].path){
         avatarLocalPath = req.files.avatar[0].path
     }
     let coverImageLocalPath;
@@ -68,12 +68,14 @@ const registerUser = asyncHandler( async (req, res) => {
     const avatar = await uploadOnCloudinary(avatarLocalPath)
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
-    if(!avatar) throw new ApiError(400,"Avatar file is required")
+    if(!avatar) throw new ApiError(400,"Couldn't upload avatar file on cloudinary")
 
    const user = await User.create({
         fullname,
         avatar: avatar.url,
+        avatar_public_id: avatar.public_id,
         coverImage: coverImage?.url || "",
+        coverImage_public_id: coverImage?.public_id || "",
         email,
         password,
         username : username.toLowerCase()
@@ -278,7 +280,7 @@ const updateAccountDetails = asyncHandler(async (req,res) => {
 })
 
 const updateUserAvatar = asyncHandler( async (req,res) => {
-    //TODO: make a function that deletes the old image from cloudinary
+    //TODO: make a function that deletes the old image from cloudinary - doneee
     const avatarLocalPath = req.file?.path
     if(!avatarLocalPath){
         throw new ApiError(400, "Avatar file is missing")
@@ -289,12 +291,17 @@ const updateUserAvatar = asyncHandler( async (req,res) => {
         throw new ApiError(400,"Error while uploading avatar file")
     }
 
-    const user = await User.findById(req.user?._id).select("-password -responseToken")
-    const oldFilePath = user.avatar
-    await deleteFromCloudinary(oldFilePath)
+    const user = await User.findById(req.user?._id).select("-password -refreshToken")
+    //console.log(user)
+    const oldFilePublicId = user.avatar_public_id
+    await deleteFromCloudinary(oldFilePublicId)
+   // console.log("old avatar public id ", oldFilePublicId)
 
-    user.avatar = newAvatar
+    user.avatar = newAvatar.url
+    user.avatar_public_id = newAvatar.public_id
     await user.save({validateBeforeSave: false})
+
+    //console.log(user.avatar)
     
     return res.status(200)
               .json(new ApiResponse(
@@ -313,8 +320,8 @@ const updateUserCoverImage = asyncHandler( async (req,res) => {
         throw new ApiError(400,"Api error occured while uploading cover image file")
     }
 
-    const user = await User.findById(req.user?._id).select("-password -responseToken")
-    
+    const user = await User.findById(req.user?._id).select("-password -refreshToken")
+
     if(user.coverImage){
         const oldFilePath = user.coverImage
         await deleteFromCloudinary(oldFilePath)
