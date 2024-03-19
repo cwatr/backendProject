@@ -1,7 +1,7 @@
 import {asyncHandler} from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js"
 import {User} from "../models/user.model.js"
-import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import {deleteFromCloudinary, uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -283,23 +283,18 @@ const updateUserAvatar = asyncHandler( async (req,res) => {
     if(!avatarLocalPath){
         throw new ApiError(400, "Avatar file is missing")
     }
-    const avatar = await uploadOnCloudinary(avatarLocalPath)
+    const newAvatar = await uploadOnCloudinary(avatarLocalPath)
 
-    if(!avatar.url){
+    if(!newAvatar.url){
         throw new ApiError(400,"Error while uploading avatar file")
     }
 
-    const user = await User.findByIdAndUpdate(
-        req.user?._id,
-        {
-            $set:{
-                avatar: avatar.url
-            }
-        },
-        {
-            new:true
-        }
-    ).select("-password -requestToken")
+    const user = await User.findById(req.user?._id).select("-password -responseToken")
+    const oldFilePath = user.avatar
+    await deleteFromCloudinary(oldFilePath)
+
+    user.avatar = newAvatar
+    await user.save({validateBeforeSave: false})
     
     return res.status(200)
               .json(new ApiResponse(
@@ -312,23 +307,21 @@ const updateUserCoverImage = asyncHandler( async (req,res) => {
     if(!coverImageLocalPath){
         throw new ApiError(400, "Cover Image file is missing")
     }
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+    const newCoverImage = await uploadOnCloudinary(coverImageLocalPath)
 
-    if(!coverImage.url){
+    if(!newCoverImage.url){
         throw new ApiError(400,"Api error occured while uploading cover image file")
     }
 
-    const user = await User.findByIdAndUpdate(
-        req.user?._id,
-        {
-            $set:{
-                coverImage: coverImage.url
-            }
-        },
-        {
-            new:true
-        }
-    ).select("-password -requestToken")
+    const user = await User.findById(req.user?._id).select("-password -responseToken")
+    
+    if(user.coverImage){
+        const oldFilePath = user.coverImage
+        await deleteFromCloudinary(oldFilePath)
+    }
+
+    user.coverImage = newCoverImage
+    await user.save({validateBeforeSave: false})
 
     return res.status(200)
               .json(new ApiResponse(
