@@ -18,15 +18,31 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid like request")
     }
 
+    const like = await Like.findOne({
+        video: video,
+        likedBy: user
+    })
+
+    if(like){
+        await Like.deleteOne({
+            video:video,
+            likedBy: user
+        })
+
+        return res.status(200).json(
+            new ApiResponse(200, true, "Video unliked successfully")
+        ) 
+    }
+
     const createdLike = await Like.create({
         video: video,
         likedBy: user
     })
 
-    if(!createdVideoLike) throw new ApiError(500, "Something went wrong while registering a video like")
+    if(!createdLike) throw new ApiError(500, "Something went wrong while registering a video like")
 
     return res.status(200).json(
-        new ApiResponse(200, createdVideoLike, "Video liked successfully")
+        new ApiResponse(200, createdLike, "Video liked successfully")
     )
 })
 
@@ -39,6 +55,22 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
     if(!comment || !user){
         throw new ApiError(400, "Invalid like request")
+    }
+
+    const like = await Like.findOne({
+        comment: comment,
+        likedBy: user
+    })
+
+    if(like){
+        await Like.deleteOne({
+            comment:comment,
+            likedBy: user
+        })
+
+        return res.status(200).json(
+            new ApiResponse(200, true, "Comment unliked successfully")
+        ) 
     }
 
     const createdCommentLike = await Like.create({
@@ -65,6 +97,22 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 
     if(!tweet || !user){
         throw new ApiError(400, "Invalid like request")
+    }
+
+    const like = await Like.findOne({
+        tweet: tweet,
+        likedBy: user
+    })
+
+    if(like){
+        await Like.deleteOne({
+            tweet:tweet,
+            likedBy: user
+        })
+
+        return res.status(200).json(
+            new ApiResponse(200, true, "Video unliked successfully")
+        ) 
     }
 
     const createdTweetLike = await Like({
